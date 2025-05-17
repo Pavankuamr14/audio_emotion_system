@@ -73,7 +73,7 @@ if __name__ == "__main__":
 
 # Test speech synthesis
 engine = pyttsx3.init()
-engine.say("Testing speech synthesis")
+engine.say("Test pyttsx3")
 engine.runAndWait()
 
 class SpeechSynthesizer:

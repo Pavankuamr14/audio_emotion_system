@@ -6,7 +6,7 @@ import sounddevice as sd
 
 from audio_utils import AudioRecorder, extract_features, list_audio_devices, detect_silence
 from emotion_recognizer import EmotionRecognizer
-from response_generator import EnhancedResponseGenerator, WindowsSpeaker
+from response_generator import EnhancedResponseGenerator, RobustSpeaker
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -54,7 +54,7 @@ def record_and_analyze(device_index=None, speak_response=True, quiet=False):
     recorder = None
     speech_synth = None
     if speak_response:
-        speech_synth = WindowsSpeaker(quiet=quiet)
+        speech_synth = RobustSpeaker(quiet=quiet)
 
     try:
         recorder = AudioRecorder(device_index=device_index, quiet=quiet)
@@ -162,19 +162,15 @@ def main():
     """Main function."""
     try:
         args = parse_arguments()
-        
         # Set logging level based on quiet option
         if args.quiet:
             logging.basicConfig(level=logging.WARNING, force=True)
-        
         print("\nAudio Emotion Recognition System")
         if not args.quiet:
             print("=" * 50)
-        
         selected_device_index = args.device
         if selected_device_index is None:
             selected_device_index = select_audio_device(quiet=args.quiet)
-        
         if not args.quiet:
             print("\nTips for best results:")
             print("- Speak clearly and at a normal volume")
@@ -182,30 +178,33 @@ def main():
             print("- Recording will continue until you press Ctrl+C")
             if args.no_speech:
                 print("- Spoken responses are DISABLED.")
-        
         while True:
-            success = record_and_analyze(selected_device_index, speak_response=not args.no_speech, quiet=args.quiet)
-            
-            if not args.continuous:
+            try:
+                success = record_and_analyze(selected_device_index, speak_response=not args.no_speech, quiet=args.quiet)
+                if not args.continuous:
+                    if not success:
+                        print("Session ended.")
+                    break # Exit after one session if not continuous
                 if not success:
-                    print("Session ended.")
-                break # Exit after one session if not continuous
-                
-            if not success:
-                print("An error occurred in the previous session, or it was cancelled.")
-
-            response = input("\nPress Enter to start another session or 'q' to quit: ").strip().lower()
-            if response == 'q':
-                break
-                
+                    print("An error occurred in the previous session, or it was cancelled.")
+                response = input("\nPress Enter to start another session or 'q' to quit: ").strip().lower()
+                if response == 'q':
+                    break
+            except KeyboardInterrupt:
+                print("\n[INFO] Program interrupted by user (Ctrl+C). Exiting...")
+                sys.exit(0)
         print("\nThank you for using the Audio Emotion Recognition System!")
-        
     except KeyboardInterrupt:
-        print("\nProgram terminated by user.")
+        print("\n[INFO] Program interrupted by user (Ctrl+C). Exiting...")
+        sys.exit(0)
     except Exception as e:
         logger.critical(f"A critical error occurred in main: {e}")
         print(f"A critical error occurred: {e}")
         sys.exit(1)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n[INFO] Program interrupted by user (Ctrl+C). Exiting...")
+        sys.exit(0)

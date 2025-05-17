@@ -20,23 +20,23 @@ class EmotionRecognizer:
         self.emotions = ['neutral', 'happy', 'sad', 'angry']
         self.feature_thresholds = {
             'energy': {
-                'low': 0.2,    # Normalized energy thresholds
-                'high': 0.6
+                'low': 0.15,    # Lowered to make sad/neutral more sensitive
+                'high': 0.45   # Lowered to make happy/angry more sensitive
             },
             'zero_crossing_rate': {
-                'low': 0.1,
-                'high': 0.3
+                'low': 0.08,   # Lowered for more sad/neutral detection
+                'high': 0.22   # Lowered for more happy/angry detection
             },
             'spectral_centroid': {
-                'low': 1000,
-                'high': 2000
+                'low': 800,    # Lowered for more sad detection
+                'high': 1700   # Lowered for more happy detection
             },
             'spectral_rolloff': {
-                'low': 3000,
-                'high': 6000
+                'low': 2200,   # Lowered for more sad/neutral detection
+                'high': 5000   # Lowered for more happy/angry detection
             }
         }
-        logger.info("Rule-based emotion recognizer initialized with enhanced feature analysis")
+        logger.info("Rule-based emotion recognizer initialized with enhanced feature analysis and tuned thresholds")
         if not quiet:
             print("Using enhanced emotion recognition system")
     
@@ -109,10 +109,14 @@ class EmotionRecognizer:
             probabilities['neutral'] += 0.2
             probabilities['sad'] += 0.1
         
+        # Log feature values for debugging
+        logger.info(f"Features: energy={energy:.4f}, zcr={zcr:.4f}, centroid={spectral_centroid:.2f}, rolloff={spectral_rolloff:.2f}, mfcc_var={np.mean(np.abs(delta_mfcc)):.4f}")
+        
         # Normalize probabilities to sum to 1
         total = sum(probabilities.values())
         if total > 0:
             probabilities = {k: v/total for k, v in probabilities.items()}
+        logger.info(f"Emotion probabilities: {probabilities}")
         
         return probabilities
     
